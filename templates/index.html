@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Capsule - Seal Your Memories</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* --- Hero Section & Capsule --- */
+        .capsule-wrapper { /* New wrapper for better sizing control */
+            width: 60%; /* Percentage of its column */
+            max-width: 300px; /* Max size of capsule */
+            aspect-ratio: 2/3; /* Maintain a capsule-like proportion */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .capsule-container {
+            width: 100%; /* Takes full width of wrapper */
+            height: 100%; /* Takes full height of wrapper */
+            position: relative;
+            transition: transform 0.7s ease-in-out, opacity 0.7s ease-in-out; /* For final shrink/fade */
+        }
+
+        .capsule-bottom, .capsule-top {
+            position: absolute;
+            width: 100%;
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+
+        .capsule-bottom {
+            bottom: 0;
+            height: 60%;
+            fill: #3b82f6; /* Tailwind blue-500 */
+            z-index: 1; /* Ensure bottom is behind letter initially */
+        }
+
+        .capsule-top {
+            top: 0;
+            height: 40%;
+            fill: #ef4444; /* Tailwind red-500 */
+            transform: translateY(-125%); /* Start further above, to be fully hidden */
+            opacity: 0;
+            z-index: 10; /* Ensure top is above letter when closing */
+        }
+
+        .letter {
+            position: absolute;
+            left: 50%;
+            width: 70%; /* Relative to capsule-container */
+            height: auto; /* Auto height based on content */
+            max-height: 30%; /* Max height relative to capsule-container */
+            background-color: #fef9c3; /* Tailwind yellow-100 */
+            border: 2px solid #facc15; /* Tailwind yellow-400 */
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Caveat', cursive;
+            font-size: clamp(0.8rem, 3vw, 1.2rem); /* Responsive font size for letter */
+            color: #ca8a04; /* Tailwind yellow-600 */
+            padding: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            z-index: 5;
+
+            bottom: 75%; /* Start above the bottom capsule's opening */
+            transform: translateX(-50%);
+            opacity: 1;
+            /* Transition for movement and fade */
+            transition: bottom 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.5s ease-in-out 0.2s; /* Delay opacity for letter to enter first */
+        }
+
+        /* --- Animation States (applied to capsuleAnimationContainer) --- */
+        /* 1. Letter enters capsule and fades */
+        .letter-enters-capsule .letter {
+            bottom: 30%; /* Letter moves "into" the lower part of bottom capsule */
+            opacity: 0; /* Letter fades as it enters */
+        }
+
+        /* 2. Top part of capsule closes (after letter has faded) */
+        .capsule-closes .capsule-top {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* 3. Entire capsule is "sent" (shrinks and fades) */
+        .capsule-sent {
+            transform: scale(0);
+            opacity: 0 !important;
+        }
+
+        /* --- How It Works Section --- */
+        .accordion-item {
+            border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+        }
+        .accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding-left: 1rem; /* Indent content */
+            padding-right: 1rem;
+        }
+        .accordion-content.open {
+            /* max-height will be set by JS based on scrollHeight */
+            padding-top: 0.5rem;
+            padding-bottom: 1rem;
+        }
+        .accordion-icon {
+            transition: transform 0.3s ease-out;
+        }
+        .accordion-icon.open {
+            transform: rotate(45deg); /* Or rotate(180deg) for up/down arrow */
+        }
+
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="#" class="font-bold text-2xl text-blue-500">TimeCapsule</a>
+            <div>
+                <a href="{% url 'login' %}" class="text-slate-600 hover:text-blue-500 px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                <a href="{% url 'register' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-150">Sign Up</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="py-16 md:py-20 bg-gradient-to-br from-slate-900 via-purple-800 to-indigo-700 text-white min-h-[calc(100vh-68px)] flex items-center">
+            <div class="container mx-auto px-6 flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 lg:w-3/5 text-center md:text-left mb-10 md:mb-0 pr-0 md:pr-8">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                        Seal Your Today,
+                        <br class="hidden md:block">
+                        Rediscover Tomorrow.
+                    </h1>
+                    <p class="text-lg md:text-xl text-indigo-200 mb-8">
+                        Create a digital time capsule with your messages and memories. Set a date, and we'll deliver it back to your future self.
+                    </p>
+                    <a href="{% url 'register' %}" class="bg-white text-purple-700 font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-slate-100 transition duration-150 text-lg">
+                        Create Your Capsule
+                    </a>
+                </div>
+                <div class="md:w-1/2 lg:w-2/5 flex justify-center items-center mt-10 md:mt-0">
+                    <div class="capsule-wrapper"> {/* Added wrapper */}
+                        <div id="capsuleAnimationContainer" class="capsule-container">
+                            <svg class="capsule-bottom" viewBox="0 0 100 150" preserveAspectRatio="xMidYMax meet">
+                                <path d="M0,0 C0,0 0,150 50,150 C100,150 100,0 100,0 Z" />
+                            </svg>
+                            <div class="letter">Letter to self</div>
+                            <svg class="capsule-top" viewBox="0 0 100 100" preserveAspectRatio="xMidYMin meet">
+                                <path d="M0,100 C0,0 0,0 50,0 C100,0 100,0 100,100 Z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="py-16 lg:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start">
+                    <div class="lg:w-2/5 text-center lg:text-left">
+                        <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wider">The Process</span>
+                        <h2 class="text-3xl md:text-4xl font-bold text-slate-800 my-3">How It Works</h2>
+                        <p class="text-slate-600 text-lg leading-relaxed">
+                            Creating your digital time capsule is a simple and meaningful journey. Follow these steps to send a message through time to your future self.
+                        </p>
+                    </div>
+
+                    <div class="lg:w-3/5 w-full">
+                        <div id="accordionGroup">
+                            <div class="accordion-item">
+                                <button class="accordion-header focus:outline-none">
+                                    <span class="text-xl font-semibold text-slate-700">1. Craft Your Message</span>
+                                    <i class="fas fa-plus accordion-icon text-indigo-500"></i>
+                                </button>
+                                <div class="accordion-content">
+                                    <p class="text-slate-600">Write a heartfelt message, detail your current goals, or capture fleeting thoughts and feelings. You can also upload a single image (like a photo or a drawing) to visually anchor your memory. This is your space to be candid with your future self.</p>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <button class="accordion-header focus:outline-none">
+                                    <span class="text-xl font-semibold text-slate-700">2. Set the Delivery Date</span>
+                                    <i class="fas fa-plus accordion-icon text-indigo-500"></i>
+                                </button>
+                                <div class="accordion-content">
+                                    <p class="text-slate-600">Choose a specific date in the future for your capsule to be 'unlocked' and delivered. This can be anything from a few weeks to a year from now. Think about a milestone, an anniversary, or just a random day you'd like to surprise yourself.</p>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <button class="accordion-header focus:outline-none">
+                                    <span class="text-xl font-semibold text-slate-700">3. Receive & Reflect</span>
+                                    <i class="fas fa-plus accordion-icon text-indigo-500"></i>
+                                </button>
+                                <div class="accordion-content">
+                                    <p class="text-slate-600">On the designated delivery date, you'll receive an email containing your original message and a link to your image. Take a moment to open it, reflect on who you were, what you hoped for, and how far you've come. It's a unique gift from your past.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="reflection" class="py-16 bg-slate-50"> {/* Changed bg for variation */}
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl font-bold text-slate-700 mb-4">The Power of Looking Back</h2>
+                <p class="text-slate-600 max-w-3xl mx-auto text-lg leading-relaxed">
+                    Ever wondered what your past self would say to you today? Or how much you've grown?
+                    Our Time Capsule app isn't just about sending a message; it's about creating a bridge to your own history.
+                    It’s a unique way to hold yourself accountable, cherish memories, and gain perspective on your life's journey.
+                    What will you tell your future self?
+                </p>
+                 <a href="{% url 'register' %}" class="mt-8 inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition duration-150 text-lg">
+                    Start Your Journey
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 py-10">
+        <div class="container mx-auto px-6 text-center">
+            <p class="mb-2">&copy; <span id="currentYear"></span> TimeCapsule. All rights reserved.</p>
+            <p>Got a fun project? <a href="mailto:your-email@example.com" class="text-blue-400 hover:text-blue-300 underline">Let's connect!</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Capsule Animation Logic
+        const capsuleAnimationContainer = document.getElementById('capsuleAnimationContainer');
+
+        function playCapsuleAnimation() {
+            capsuleAnimationContainer.classList.remove('letter-enters-capsule', 'capsule-closes', 'capsule-sent');
+            capsuleAnimationContainer.style.transform = 'scale(1)';
+            capsuleAnimationContainer.style.opacity = '1';
+
+            // Ensure letter is visible and in start position for replay
+            const letter = capsuleAnimationContainer.querySelector('.letter');
+            if (letter) {
+                 // Resetting styles directly for replay robustness
+                letter.style.bottom = '75%';
+                letter.style.opacity = '1';
+            }
+
+
+            // 1. Letter enters capsule and fades
+            setTimeout(() => {
+                capsuleAnimationContainer.classList.add('letter-enters-capsule');
+            }, 500); // Start after a brief pause
+
+            // 2. Top part of capsule closes (after letter has started fading)
+            // Letter opacity transition is 0.5s, starts after 0.2s delay. So letter is fully faded by 0.7s from its animation start.
+            // Letter movement is 0.7s.
+            // Start closing capsule after letter is well into its animation and has started fading.
+            setTimeout(() => {
+                capsuleAnimationContainer.classList.add('capsule-closes');
+            }, 500 + 700); // Start closing after letter's movement duration.
+
+            // 3. Entire capsule is "sent" (shrinks and fades)
+            // Top closing animation is 0.5s.
+            // Start this after the top is fully closed.
+            setTimeout(() => {
+                capsuleAnimationContainer.classList.add('capsule-sent');
+            }, 500 + 700 + 500 + 200); // Initial Delay + Letter Movement + Top Close Duration + Small buffer
+
+            // 4. Reset for potential next play
+            setTimeout(() => {
+                capsuleAnimationContainer.classList.remove('letter-enters-capsule', 'capsule-closes');
+                // 'capsule-sent' is on the container. If looping, it needs to be removed and styles reset.
+                // For now, it just cleans up other classes for a potential manual re-trigger.
+                // To loop: playCapsuleAnimation();
+            }, 5000); // Total cycle time
+        }
+
+        window.addEventListener('load', playCapsuleAnimation);
+
+        // Accordion Logic for "How It Works"
+        const accordionGroup = document.getElementById('accordionGroup');
+        if (accordionGroup) {
+            const accordionItems = accordionGroup.querySelectorAll('.accordion-item');
+
+            accordionItems.forEach(item => {
+                const header = item.querySelector('.accordion-header');
+                const content = item.querySelector('.accordion-content');
+                const icon = header.querySelector('.accordion-icon');
+
+                header.addEventListener('click', () => {
+                    const isOpen = content.classList.contains('open');
+
+                    // Optional: Close other open accordions
+                    // accordionItems.forEach(otherItem => {
+                    //     if (otherItem !== item) {
+                    //         otherItem.querySelector('.accordion-content').classList.remove('open');
+                    //         otherItem.querySelector('.accordion-content').style.maxHeight = null;
+                    //         otherItem.querySelector('.accordion-content').style.paddingTop = null;
+                    //         otherItem.querySelector('.accordion-content').style.paddingBottom = null;
+                    //         otherItem.querySelector('.accordion-icon').classList.remove('fa-minus');
+                    //         otherItem.querySelector('.accordion-icon').classList.add('fa-plus');
+                    //         otherItem.querySelector('.accordion-icon').classList.remove('open');
+                    //     }
+                    // });
+
+                    if (isOpen) {
+                        content.classList.remove('open');
+                        content.style.maxHeight = null;
+                        content.style.paddingTop = null;
+                        content.style.paddingBottom = null;
+                        icon.classList.remove('fa-minus', 'open');
+                        icon.classList.add('fa-plus');
+                    } else {
+                        content.classList.add('open');
+                        content.style.maxHeight = content.scrollHeight + "px"; // Set max-height to content's actual height
+                        // Padding transition is handled by CSS if 'open' class adds padding
+                        icon.classList.remove('fa-plus');
+                        icon.classList.add('fa-minus', 'open');
+                    }
+                });
+            });
+        }
+
+    </script>
+
+</body>
+</html>
